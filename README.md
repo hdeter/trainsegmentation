@@ -6,10 +6,10 @@ Work in progress.
 
 # Contact information:
 
-Heather S. Deter, PhD
-Postdoctoral Research Assistant
-University of Illinois Urbana Champaign
-Email: hdeter2013@gmail.com
+Heather S. Deter, PhD\n
+Postdoctoral Research Assistant\n
+University of Illinois Urbana Champaign\n
+Email: hdeter2013@gmail.com\n
 
 # Acknowldegments
 
