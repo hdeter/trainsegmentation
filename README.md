@@ -1,6 +1,10 @@
 # trainsegmentation
 Segmentation Tools that apply scikit-learn machine learning and various filters to build image feature sets and classify image pixels.
 
+# Installation
+Install using pip:
+pip install -i https://test.pypi.org/simple/ trainsegmentation
+
 # Examples
 Work in progress.
 
