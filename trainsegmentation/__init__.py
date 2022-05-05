@@ -4,7 +4,9 @@ from .trainsegmentation import get_pixel_mirror_conditions
 from .trainsegmentation import Neighbors
 from .trainsegmentation import Membrane_projections
 from .trainsegmentation import Gaussian_blur
+from .trainsegmentation import Difference_of_Gaussians
 from .trainsegmentation import Sobel_filter
+from .trainsegmentation import Hessian
 from .trainsegmentation import Watershed_distance
 from .trainsegmentation import Meijering_filter
 from .trainsegmentation import Sklearn_basic

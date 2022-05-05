@@ -178,6 +178,36 @@ def Gaussian_blur(img,minSigma = 1,maxSigma = 16):
          
     return meta, features
 
+def Difference_of_Gaussians(img,minSigma = 1,maxSigma = 16):
+    
+    meta = []
+    features = []
+    
+    lastimage = img
+    lastsigma = 0
+     
+    sigmastep = 2
+    sigma = minSigma/sigmastep
+    while sigma < maxSigma:
+        sigma = int(sigma*sigmastep)
+     
+        keyname = 'Difference_of_Gaussians_' + str(sigma) + str(lastsigma)
+        #make gaussian blur
+        gblur = ndimage.gaussian_filter(img,0.4*sigma)
+        diff = np.subtract(gblur,lastimage)
+        
+        meta.append(keyname)
+        features.append(diff)
+        
+        #store last image and sigma
+        lastimage = gblur
+        lastsigma = sigma
+        
+        
+    features = np.dstack([f for f in features])
+         
+    return meta, features
+
 def Sobel_filter(img,minSigma = 1,maxSigma = 16):
     #counter to track iterations
     scount = 0
@@ -250,6 +280,34 @@ def Meijering_filter(img,minSigma = 1,maxSigma = 16):
          
     return meta, features
 
+def Hessian(img,minSigma = 1,maxSigma = 16):
+    scount = 0
+    
+    #no gaussian first
+    keyname = 'Hessian_%01d.0'  
+    sfilter = filters.meijering(img)
+    meta = [keyname %scount]
+    features = [sfilter]
+    scount = scount+1
+     
+    sigmastep = 2
+    sigma = minSigma/sigmastep
+    while sigma < maxSigma:
+        sigma = int(sigma*sigmastep)
+        
+        #make gaussian blur
+        gblur = ndimage.gaussian_filter(img,0.4*sigma)
+        sfilter = filters.hessian(gblur)
+        
+        meta.append(keyname %sigma)
+        features.append(sfilter)
+        
+    #stack features
+    features = np.dstack([f for f in features])
+         
+    return meta, features
+
+
 def Sklearn_basic(img):
     basic = feature.multiscale_basic_features(img)
     return ['Sklearn_basic']*basic.shape[-1], basic
@@ -317,15 +375,22 @@ def get_features(selectFeatures,img,minSigma = 1, maxSigma = 16, patchSize = 19,
     meta = ['original']
     features = np.expand_dims(img,axis = -1)
     
-    if selectFeatures == 'all':
-        selectFeatures = ['Gaussian_blur','Sobel_filter','Sklearn_basic','Meijering_filter',
+    #list of all the feature functions
+    allfeatures = ['Gaussian_blur','Difference_of_Gaussians','Hessian','Sobel_filter','Sklearn_basic','Meijering_filter',
                           'Watershed_distance','Neighbors','Membrane_projections',
                           'Mean','Variance','Median','Maximum','Minimum']
     
+    if selectFeatures == 'all':
+        selectFeatures = allfeatures
+    
     for feat in selectFeatures:
-        m, f = eval((feat + '(img)'))
-        meta = meta + m
-        features = np.concatenate((features,f),axis = -1)
+        if feat in allfeatures:
+            m, f = eval((feat + '(img)'))
+
+            meta = meta + m
+            features = np.concatenate((features,f),axis = -1)
+        else:
+            print(feat + ' not available')
         
     return(meta, features)
 
@@ -528,7 +593,6 @@ def threshold_mask(img,threshmethod = filters.threshold_minimum):
      mask = mask*255/np.max(mask)
      
      return mask
-
 
 
 
