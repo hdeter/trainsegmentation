@@ -5,6 +5,9 @@ Segmentation Tools that apply scikit-learn machine learning and various filters 
 Install using pip:
 pip install -i https://test.pypi.org/simple/ trainsegmentation
 
+# Documentation
+Documentation for avaible functions and feature sets is in 'trainsegmentation-documentation.pdf'.
+
 # Examples
 Work in progress.
 
