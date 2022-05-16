@@ -21,6 +21,7 @@ from .trainsegmentation import import_training_data
 from .trainsegmentation import pad_images
 from .trainsegmentation import get_training_data
 from .trainsegmentation import load_training_data
+from .trainsegmentation import load_training_features
 from .trainsegmentation import load_classifier
 from .trainsegmentation import train_classifier
 from .trainsegmentation import classify_image_probability

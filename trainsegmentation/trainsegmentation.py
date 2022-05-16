@@ -14,6 +14,7 @@ and classify images using sci-kit learn
 
 import numpy as np
 import math
+import os
 from scipy import ndimage,signal
 from scipy import ndimage as ndi
 
@@ -375,22 +376,17 @@ def get_features(selectFeatures,img,minSigma = 1, maxSigma = 16, patchSize = 19,
     meta = ['original']
     features = np.expand_dims(img,axis = -1)
     
-    #list of all the feature functions
-    allfeatures = ['Gaussian_blur','Difference_of_Gaussians','Hessian','Sobel_filter','Sklearn_basic','Meijering_filter',
-                          'Watershed_distance','Neighbors','Membrane_projections',
-                          'Mean','Variance','Median','Maximum','Minimum']
-    
-    if selectFeatures == 'all':
-        selectFeatures = allfeatures
-    
+    i = 0
     for feat in selectFeatures:
-        if feat in allfeatures:
-            m, f = eval((feat + '(img)'))
-
-            meta = meta + m
-            features = np.concatenate((features,f),axis = -1)
+        i+=1
+        if callable(feat):
+            m, f = feat(img)
         else:
-            print(feat + ' not available')
+            print('feature ' + str(i) + ' in featureselect is not callable and will be ignored')
+            continue
+        
+        features = np.concatenate((features,f),axis = -1)
+        meta = meta + m
         
     return(meta, features)
 
@@ -400,7 +396,17 @@ def import_training_data(imgdir,maskdir,ext = '.tif'):
 
 
     #get list of all files in imagedir
-    filenames = glob.glob(imgdir + '/*' + ext)
+    if os.path.isdir(imgdir):
+        filenames = glob.glob(imgdir + '/*' + ext)
+    elif os.path.isfile(imgdir):
+        filenames = [imgdir]
+    else:
+        print(imgdir + ' could not be found')
+        return [],[]
+    
+    if not isinstance(maskdir,list):
+        print('labels must be provided in a list')
+        return [],[]
     
     #lists to store data
     IMG = []
@@ -423,7 +429,7 @@ def import_training_data(imgdir,maskdir,ext = '.tif'):
             try:
                 mask = imread(filename.replace(imgdir,mdir))
             except:
-                print('Could not find mask ' + mdir + '/' + filename + ext)
+                print('Could not find mask ' + filename.replace(imgdir,mdir))
                 break
             if mask.shape != img.shape:
                 print('Error: mask and image do not match shape',img.shape,mask.shape)
@@ -432,12 +438,16 @@ def import_training_data(imgdir,maskdir,ext = '.tif'):
             training_labels = np.add(training_labels, mask)
             i = i+1
 
-        IMG.append(img)
-        LABELS.append(training_labels)
+        #only append when there are labels
+        if i > 1:
+            IMG.append(img)
+            LABELS.append(training_labels)
         
     return IMG, LABELS
 
 def pad_images(images):
+#helper function for when images are different sizes 
+    
     #get the largest dimensions
     xcheck = [i.shape[0] for i in images]
     ycheck = [i.shape[1] for i in images]
@@ -455,12 +465,36 @@ def pad_images(images):
     return NEW
 
 
-def get_training_data(IMG,LABELS,featureselect,loaddatafile = None, savedatafile = None):
+def get_training_data(IMG,LABELS,featureselect,loaddatafile = None, savedatafile = None,returnmeta = False):
 #gets training data
 
+    #catch if you only pass in one image or label or feature function and put them in lists
+    if not isinstance(IMG,list):
+        if isinstance(IMG,np.ndarray):
+            IMG = [IMG]
+        else:
+            raise Exception('images in incorrect format; expected ndarray')
+
+    if not isinstance(LABELS,list):
+        if isinstance(LABELS,np.ndarray):
+            LABELS = [LABELS]
+        else:
+            raise Exception('labels in incorrect format; expected ndarray')
+
     if len(IMG) != len(LABELS):
-        print('mismatch between number of labels and images')
+        raise Exception('mismatch between number of labeled images and input images')
         pass
+    
+    if not isinstance(featureselect,list):
+        if callable(featureselect):
+            featureselect = [featureselect]
+        else:
+            raise Exception('Featureselect is not callable')
+
+    else:
+        if not any([callable(feat) for feat in featureselect]):
+            raise Exception('featureselect is not callable')
+            
         
     #check if image sizes are equal
     sizecheck = [f.shape[0]*f.shape[1] for f in IMG]
@@ -470,12 +504,16 @@ def get_training_data(IMG,LABELS,featureselect,loaddatafile = None, savedatafile
     
     # get features from list of images
     featuredata = [get_features(featureselect, simg) for simg in IMG]
-    meta, FEATURES = list(zip(*featuredata))
+    meta, FEATURES = list(zip(*featuredata)) 
         
     if loaddatafile is not None:
-        loadmeta, loadFEATURES = load_training_data(loaddatafile)
-        meta = meta + loadmeta
-        FEATURES = FEATURES + loadFEATURES
+        loadmeta, loadFEATURES,loadLABELS,loadfeatureselect = load_training_features(loaddatafile)
+        if loadfeatureselect == featureselect:
+            meta = meta + loadmeta
+            FEATURES = FEATURES + loadFEATURES
+            LABELS = LABELS + loadLABELS
+        else:
+            print('loaded data file has different feature selection and is not included')
        
     
     # flatten trainingfeatures for classifier
@@ -486,16 +524,43 @@ def get_training_data(IMG,LABELS,featureselect,loaddatafile = None, savedatafile
     traininglabels = np.concatenate(LABELS)
     traininglabels = traininglabels.flatten()
     
+    #isolate labeled pixels and remove unlabeled pixels
+    trainingfeatures = trainingfeatures[traininglabels > 0,:]
+    traininglabels = traininglabels[traininglabels > 0]
+    
     if savedatafile is not None:
-        pickle.dump([meta,FEATURES,featureselect],open(savedatafile,'wb'))
+        pickle.dump([meta,FEATURES,LABELS,featureselect],open(savedatafile,'wb'))
     
-    return traininglabels, trainingfeatures, featureselect
+    if returnmeta:
+        return traininglabels, trainingfeatures, meta
+    else:
+        return traininglabels, trainingfeatures
 
-def load_training_data(loaddatafile):
+def load_training_features(loaddatafile):
     
-    meta, FEATURES,featureselect = pickle.load(open(loaddatafile, 'rb'))
+    meta, FEATURES, LABELS, featureselect = pickle.load(open(loaddatafile, 'rb'))
     
-    return meta, FEATURES, featureselect
+    return meta, FEATURES, LABELS, featureselect
+
+def load_training_data(loaddatafile, returnmeta = False):
+    meta, FEATURES, LABELS, featureselect = load_training_data(loaddatafile)
+    
+    # flatten trainingfeatures for classifier
+    trainingfeatures = np.concatenate(FEATURES)
+    trainingfeatures = trainingfeatures.reshape(-1, trainingfeatures.shape[-1])
+    
+    # flatten traininglabels for classifier
+    traininglabels = np.concatenate(LABELS)
+    traininglabels = traininglabels.flatten()
+    
+    #isolate labeled pixels and remove unlabeled pixels
+    trainingfeatures = trainingfeatures[traininglabels > 0,:]
+    traininglabels = traininglabels[traininglabels > 0]
+    
+    if returnmeta:
+        return traininglabels, trainingfeatures, featureselect, meta
+    else:
+        return traininglabels, trainingfeatures, featureselect
 
 def load_classifier(clffile):
     
