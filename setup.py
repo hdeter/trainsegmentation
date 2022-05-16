@@ -11,9 +11,9 @@ Created on Fri Apr  8 14:35:47 2022
 
 from setuptools import setup, find_packages
 
-VERSION = '0.1.0' 
-DESCRIPTION = 'Train Image Segmentation'
-LONG_DESCRIPTION = 'Functions written to streamline generating image feature sets and training sci-kit learn classifiers'
+VERSION = '0.1.3' 
+DESCRIPTION = 'Trainable Image Segmentation'
+LONG_DESCRIPTION = 'Functions written to streamline generating image feature sets and training scikit-learn classifiers'
 
 # Setting up
 setup(
