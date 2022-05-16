@@ -9,7 +9,7 @@ pip install -i https://test.pypi.org/simple/ trainsegmentation
 Documentation for avaible functions and feature sets is in 'trainsegmentation-documentation.pdf'.
 
 # Examples
-Work in progress.
+The examples contains a jupyter notebook to walk through training a classifier using images of E. coli colonies grown on LB agar as example data.
 
 # Acknowledgements
 
