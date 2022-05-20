@@ -1,6 +1,6 @@
 #trainsegmentation __init__.py
 
-from .trainsegmentation import get_pixel_mirror_conditions
+from .trainsegmentation import set_kernels
 from .trainsegmentation import Neighbors
 from .trainsegmentation import Membrane_projections
 from .trainsegmentation import Gaussian_blur

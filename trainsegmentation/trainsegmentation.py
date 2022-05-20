@@ -29,85 +29,87 @@ import glob
 
 import pickle
 
-#################################
+import itertools
 
+#################################
 
 #subfunctions for use in features
 
-def get_pixel_mirror_conditions(img, x, y):
-    
-    #get height 
-    imx = img.shape[0]
-    #get width
-    imy = img.shape[1]
-    
-    #take absolute value of x and y
-    x2 = int(abs(x))
-    y2 = int(abs(y))
+def set_kernels(kernel,a,b):
+    kernel[a,b] = 1
+    return kernel
 
-    #calculate new position if able
-    ##otherwise returns original pixel value
-    if x2 >= imx:
-        x2 = int(2 * (imx-1) - x2)
-    
-    if y2 >= imy:
-        y2 = int(2 * (imy - 1) - y2)
-    
-    #return the value of the pixel at that location
-    return(img[x2,y2])
+def Basic_filter(img,minSigma,maxSigma,basic_func,name):
+#applies a basic filter to pixels with shifted directionality with a distance of sigma
+    #get stuff to store
+    meta = []
+    features = []
         
+    sigmastep = 2
+    sigma = minSigma/sigmastep
+
+    while sigma < maxSigma:
+
+        #loop through each sigma
+        ##for each new key initiate empty array
+        sigma = int(sigma*sigmastep)
+        keyname = name + '_' + str(sigma)
+        # print(sigma)
         
+        #roll data through sigmas to get each pixel
+        ranges = itertools.product(list(range(-sigma,sigma+1)),list(range(-sigma,sigma+1)))
+        filtered = [np.roll(img,(x,y)) for x,y in ranges]
+        
+        filtered = np.dstack(filtered)
+        data = basic_func(filtered,axis = -1)
+                
+        #store data then move to next key
+        meta.append(keyname)
+        features.append(data)
+                
+    features = np.dstack(features)
+    
+    return meta, features
+
 
 #Functions for getting 2D features from images 
 ## all functions return list of metadat (description of each feature) and 3d arrays with features along axis = -1
 
+
 #Neighbors
 def Neighbors(img,minSigma = 1,maxSigma = 16):
-    
-    #get height 
-    imx = img.shape[0]
-    #get width
-    imy = img.shape[1]
-    
     sigmastep = 2
     sigma = minSigma/sigmastep
+    
+    meta = []
+    features = []
+    
     while sigma <= maxSigma:
         sigma = int(sigma*sigmastep)
         # print(sigma)
                 
-        meta = []
-        features = []
+
         
         #loop through +/- for each sigma
         ##for each new key initiate empty array
-        k = 0
-        keyname = 'Neighbors_' + str(sigma) + '_' + str(k)
-        neighbors = np.empty((imx,imy))
+        keyname = 'Neighbors_' + str(sigma) + '_%d'
         
-        for i in [(-1*sigma), 0, sigma]:
-            
-            for j in [(-1*sigma), 0, sigma]:
-                
-                if j == 0 and i ==0:
-                    continue
-              
-                for y in range(0,imy):
-                    
-                    for x in range(0,imx):
-                        
-                        neighbors[x,y] = get_pixel_mirror_conditions(img,x+i,y+j)
-                        
-                #store data then move to next key
-                meta.append(keyname)
-                features.append(neighbors)
-                        
-                k+=1
-                keyname = 'Neighbors_' + str(sigma) + '_' + str(k)
-                neighbors = np.empty((imx,imy))
-    
+        #create kernel to get neighbors
+        kernel = np.zeros((sigma*2+1,sigma*2+1))
+        kranges = itertools.product(range((-1*sigma), sigma+1,sigma),range((-1*sigma), sigma+1, sigma))
+        kernels = [set_kernels(kernel,a,b) for a,b in kranges]
+        neighbors = [ndimage.convolve(img,kernel,mode = 'mirror') for kernel in kernels]
+        keys = [keyname % k for k in range(len(neighbors))]
+                                                    
+        #store data then move to next key
+        meta = meta + keys
+        features = features + neighbors
+
     features = np.dstack([f for f in features])
                         
     return meta, features    
+
+
 
 #Membrane Projections
 def Membrane_projections(img,nAngles = 30, patchSize = 19,membraneSize = 1):
@@ -313,41 +315,7 @@ def Sklearn_basic(img):
     basic = feature.multiscale_basic_features(img)
     return ['Sklearn_basic']*basic.shape[-1], basic
 
-def Basic_filter(img,minSigma,maxSigma,basic_func,name):
-#applies a basic filter to pixels with shifted directionality with a distance of sigma
-    
-    #get stuff to store
-    meta = []
-    features = []
-        
-    sigmastep = 2
-    sigma = minSigma/sigmastep
 
-    while sigma < maxSigma:
-
-        #loop through each sigma
-        ##for each new key initiate empty array
-        sigma = int(sigma*sigmastep)
-        keyname = name + '_' + str(sigma)
-        # print(sigma)
-        
-        #list to store images
-        filtered = []
-        
-        #roll data through sigmas to get each pixel
-        for x in range(-sigma,sigma):
-            for y in range(-sigma,sigma):
-                filtered.append(np.roll(img,(x,y)))
-        
-        filtered = np.dstack([f for f in filtered])
-        data = basic_func(filtered,axis = -1)
-                
-        #store data then move to next key
-        meta.append(keyname)
-        features.append(data)
-                
-    features = np.dstack([f for f in features])
-    return meta, features
 
 
 def Mean(img,minsigma=1,maxsigma=16):
