@@ -288,7 +288,7 @@ def Hessian(img,minSigma = 1,maxSigma = 16):
     
     #no gaussian first
     keyname = 'Hessian_%01d.0'  
-    sfilter = filters.meijering(img)
+    sfilter = filters.hessian(img)
     meta = [keyname %scount]
     features = [sfilter]
     scount = scount+1
@@ -463,12 +463,14 @@ def get_training_data(IMG,LABELS,featureselect,loaddatafile = None, savedatafile
         if not any([callable(feat) for feat in featureselect]):
             raise Exception('featureselect is not callable')
             
+    if len(IMG) < 1:
+        raise Exception('no images in IMG')
         
-    #check if image sizes are equal
-    sizecheck = [f.shape[0]*f.shape[1] for f in IMG]
-    if not all(elem == sizecheck[0] for elem in sizecheck):
-        IMG = pad_images(IMG)
-        LABELS = pad_images(LABELS)
+    # #check if image sizes are equal
+    # sizecheck = [f.shape[0]*f.shape[1] for f in IMG]
+    # if not all(elem == sizecheck[0] for elem in sizecheck):
+    #     IMG = pad_images(IMG)
+    #     LABELS = pad_images(LABELS)
     
     # get features from list of images
     featuredata = [get_features(featureselect, simg) for simg in IMG]
@@ -482,18 +484,15 @@ def get_training_data(IMG,LABELS,featureselect,loaddatafile = None, savedatafile
             LABELS = LABELS + loadLABELS
         else:
             print('loaded data file has different feature selection and is not included')
-       
-    
-    # flatten trainingfeatures for classifier
-    trainingfeatures = np.concatenate(FEATURES)
-    trainingfeatures = trainingfeatures.reshape(-1, trainingfeatures.shape[-1])
-    
+            
     # flatten traininglabels for classifier
-    traininglabels = np.concatenate(LABELS)
-    traininglabels = traininglabels.flatten()
+    traininglabels = [label.flatten() for label in LABELS]
     
-    #isolate labeled pixels and remove unlabeled pixels
-    trainingfeatures = trainingfeatures[traininglabels > 0,:]
+    #get features according to flattened labels
+    trainingfeatures = [feature.reshape(-1,feature.shape[-1])[traininglabels[ii] > 0,:] for ii,feature in enumerate(FEATURES)]
+    
+    trainingfeatures = np.concatenate(trainingfeatures)    
+    traininglabels = np.concatenate(traininglabels)
     traininglabels = traininglabels[traininglabels > 0]
     
     if savedatafile is not None:
