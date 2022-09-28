@@ -4,6 +4,8 @@ from .trainsegmentation import set_kernels
 from .trainsegmentation import Neighbors
 from .trainsegmentation import Membrane_projections
 from .trainsegmentation import Gaussian_blur
+from .trainsegmentation import Laplace
+from .trainsegmentation import Median_blur
 from .trainsegmentation import Difference_of_Gaussians
 from .trainsegmentation import Sobel_filter
 from .trainsegmentation import Hessian
