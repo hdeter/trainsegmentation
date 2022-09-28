@@ -333,6 +333,69 @@ def Maximum(img,minsigma=1,maxsigma=16):
 def Minimum(img,minsigma=1,maxsigma=16):
     return Basic_filter(img, minsigma, maxsigma, np.min, 'Minimum')
 
+  
+#new filters
+def Laplace(img,minSigma = 1,maxSigma = 16):
+    scount = 0
+    
+    #no gaussian first
+    keyname = 'Laplace_filter_%01d.0'  
+    sfilter = filters.laplace(img)
+    
+    #store data
+    meta = [keyname %scount]
+    features = [sfilter]
+    scount = scount+1
+         
+    sigmastep = 2
+    sigma = minSigma/sigmastep
+    while sigma < maxSigma:
+        sigma = int(sigma*sigmastep)
+        
+        #make gaussian blur
+        gblur = ndimage.gaussian_filter(img,0.4*sigma)
+        sfilter = filters.laplace(gblur)
+        
+        #store data
+        meta.append(keyname %sigma)
+        features.append(sfilter)
+        
+    #stack features
+    features = np.dstack([f for f in features])
+    
+    return meta,features
+         
+def Median_blur(img,minSigma = 1,maxSigma = 16):
+    scount = 0
+    
+    #no gaussian first
+    keyname = 'Median_filter_%01d.0'  
+    sfilter = filters.median(img)
+    
+    #store data
+    meta = [keyname %scount]
+    features = [sfilter]
+    scount = scount+1
+         
+    sigmastep = 2
+    sigma = minSigma/sigmastep
+    while sigma < maxSigma:
+        sigma = int(sigma*sigmastep)
+        
+        #make gaussian blur
+        gblur = ndimage.gaussian_filter(img,0.4*sigma)
+        sfilter = filters.median(gblur)
+        
+        #store data
+        meta.append(keyname %sigma)
+        features.append(sfilter)
+        
+    #stack features
+    features = np.dstack([f for f in features])
+    
+    return meta,features
+    
+
 ##########################################
 
 #Functions for handling training data and classifiers
