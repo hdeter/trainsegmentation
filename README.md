@@ -4,8 +4,8 @@ Segmentation Tools that apply scikit-learn machine learning and various filters 
 # Contact information:
 
 Heather S. Deter, PhD
-Postdoctoral Research Assistant
-University of Illinois Urbana Champaign
+Assistant Professor of Biology
+Concordia University Chicago
 Email: hdeter2013@gmail.com
 
 # Acknowldegments
